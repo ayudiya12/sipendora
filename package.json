@@ -1,0 +1,22 @@
+{
+  "name": "sipendora",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Pendapatan Dispora Palembang",
+  "scripts": {
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.99.2",
+    "@tanstack/react-table": "^8.21.3",
+    "axios": "^1.15.1",
+    "concurrently": "^8.2.2",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.14.1",
+    "zustand": "^5.0.12"
+  }
+}
