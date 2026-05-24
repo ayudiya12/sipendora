@@ -9,6 +9,7 @@ import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import MainLayout from "../../components/layout/MainLayout";
+import { resolveImageUrl } from "../../utils/url";
 
 // Import Reusable Components
 import Button from '../../components/ui/Button';
@@ -162,7 +163,7 @@ const Facilities = () => {
         return (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 shadow-sm">
-                {img ? <img src={img} className="w-full h-full object-cover" /> : <Building2 className="w-full h-full p-2 text-slate-300" />}
+                {img ? <img src={resolveImageUrl(img)} className="w-full h-full object-cover" /> : <Building2 className="w-full h-full p-2 text-slate-300" />}
             </div>
             <div>
               <span className="block font-bold text-slate-800 text-sm leading-tight tracking-tight">{info.getValue()}</span>
@@ -247,19 +248,27 @@ const Facilities = () => {
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><ImageIcon size={12}/> Galeri Foto</label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1 group">
-                                    <input type="text" placeholder="URL..." className="w-full pl-3 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary-500 transition-all shadow-sm" value={tempImage} onChange={e => setTempImage(e.target.value)} />
-                                    <button type="button" onClick={() => fileInputRef.current.click()} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary-500 transition-colors"><Camera size={16} /></button>
-                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                                    <input type="text" placeholder="URL..." className="w-full pl-3 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary-500 transition-all shadow-sm" value={tempImage} onChange={e => setTempImage(e.target.value)} disabled={isUploading} />
+                                    <button type="button" disabled={isUploading} onClick={() => fileInputRef.current.click()} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-primary-500 transition-colors disabled:opacity-50">
+                                        {isUploading ? <Loader2 size={16} className="animate-spin text-primary-500" /> : <Camera size={16} />}
+                                    </button>
+                                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} disabled={isUploading} />
                                 </div>
-                                <button type="button" onClick={() => { if(tempImage) setFormData({...formData, images: [...formData.images, tempImage]}); setTempImage(''); }} className="p-3 bg-slate-900 text-white rounded-xl shadow-md"><Plus size={16}/></button>
+                                <button type="button" disabled={isUploading} onClick={() => { if(tempImage) setFormData({...formData, images: [...formData.images, tempImage]}); setTempImage(''); }} className="p-3 bg-slate-900 text-white rounded-xl shadow-md disabled:bg-slate-300"><Plus size={16}/></button>
                             </div>
                             <div className="grid grid-cols-4 gap-2">
                                 {formData.images.map((url, i) => (
                                     <div key={i} className="group relative aspect-square rounded-lg overflow-hidden border border-white shadow-sm cursor-zoom-in" onClick={() => setPreviewImage(url)}>
-                                        <img src={url} className="w-full h-full object-cover" />
+                                        <img src={resolveImageUrl(url)} className="w-full h-full object-cover" />
                                         <button type="button" onClick={e => { e.stopPropagation(); setFormData({...formData, images: formData.images.filter((_,idx) => idx !== i)}); }} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><Trash size={12}/></button>
                                     </div>
                                 ))}
+                                {isUploading && (
+                                    <div className="aspect-square rounded-lg border border-dashed border-primary-200 bg-primary-50/20 flex flex-col items-center justify-center text-primary-500 animate-pulse">
+                                        <Loader2 size={14} className="animate-spin mb-1 text-primary-600" />
+                                        <span className="text-[7px] font-black uppercase tracking-widest text-primary-600">Uploading</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -428,7 +437,7 @@ const Facilities = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm" />
             <div className="fixed inset-0 overflow-y-auto p-4 flex items-center justify-center">
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative max-w-4xl w-full">
-                  <img src={previewImage} className="w-full rounded-[2.5rem] shadow-2xl border-4 border-white/10" />
+                  <img src={resolveImageUrl(previewImage)} className="w-full rounded-[2.5rem] shadow-2xl border-4 border-white/10" />
                   <button onClick={() => setPreviewImage(null)} className="absolute -top-10 right-0 text-white font-black text-xs uppercase flex items-center gap-2 tracking-[0.2em] hover:text-primary-400 transition-colors"><X size={24}/> Tutup</button>
                 </motion.div>
             </div>

@@ -25,6 +25,15 @@ const NotificationBell = () => {
         return () => clearInterval(interval);
     }, []);
 
+    const markAsRead = async (id) => {
+        try {
+            await api.patch(`/notifications/${id}/read`);
+            fetchNotifications();
+        } catch (err) {
+            console.error("Gagal menandai baca");
+        }
+    };
+
     const markAllAsRead = async () => {
         try {
             await api.patch('/notifications/read-all');
@@ -135,7 +144,12 @@ const NotificationBell = () => {
                                     return (
                                         <MenuItem key={n.id}>
                                             {({ focus }) => (
-                                                <button className={`
+                                                <button
+                                                    onClick={() => {
+                                                        if (n.isRead === 0) markAsRead(n.id);
+                                                        navigate('/notifications');
+                                                    }}
+                                                    className={`
                                                     w-full text-left px-4 sm:px-5 py-3.5 sm:py-4
                                                     flex items-start gap-3
                                                     transition-colors duration-150

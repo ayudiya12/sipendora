@@ -78,15 +78,17 @@ npm run dev
 
 ---
 
-## ⚠️ Troubleshooting
+## ⚠️ Troubleshooting & Resolusi Konflik Dependency
 
-### ERESOLVE could not resolve (Dependency Conflict)
-Jika Anda mendapatkan error saat `npm install` terkait konflik versi `react` (terutama React 19) dengan library seperti `lucide-react`, gunakan flag `--legacy-peer-deps`:
+Project ini menggunakan **React 19** di sisi frontend, sedangkan beberapa library pihak ketiga (seperti `lucide-react` versi awal) secara bawaan memiliki *peer dependency* yang hanya menargetkan React 16/17/18.
 
+### 🛡️ Solusi Permanen (Sudah Diterapkan):
+Anda **tidak perlu** menggunakan flag `--legacy-peer-deps` secara manual lagi. Kami telah mengimplementasikan solusi permanen berikut ke dalam konfigurasi project:
+1. **Pembersihan Root:** Menghapus semua dependency React duplikat dari root `package.json` agar `node_modules` root tetap steril.
+2. **NPM Overrides:** Menambahkan konfigurasi `"overrides"` di [client/package.json](file:///d:/job-besak/sipendora/client/package.json) untuk secara otomatis menyelaraskan *peer dependency* React ke versi `^19.0.0` yang terinstal di client.
+
+Dengan ini, Anda cukup menjalankan:
 ```bash
-# Jalankan ini jika install-all gagal
-npm install --legacy-peer-deps
-npm install --prefix server --legacy-peer-deps
-npm install --prefix client --legacy-peer-deps
+npm run install-all
 ```
-Flag ini memberitahu NPM untuk tetap menginstall library meskipun ada ketidakcocokan *peer dependency* yang biasanya aman untuk React 19.
+Instalasi akan berjalan dengan lancar, bersih, dan sukses 100%!

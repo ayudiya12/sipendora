@@ -79,14 +79,39 @@ router.get('/admin/rekening', [verifyToken, isAdmin], async (req, res) => {
 });
 
 /**
+ * @route   POST /api/settings/admin/rekening/upload
+ * @desc    Upload gambar QRIS khusus
+ * @access  Private (Admin)
+ */
+router.post('/admin/rekening/upload', [verifyToken, isAdmin, upload.single('qris_image')], async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Tidak ada file yang diunggah' });
+    }
+
+    try {
+        if (isLocal) {
+            // Local: simpan path relatif ke file
+            const qrisImagePath = `/uploads/qris/${req.file.filename}`;
+            res.json({ url: qrisImagePath });
+        } else {
+            // Production: upload ke Vercel Blob
+            const filename = `qris/qris-${Date.now()}${path.extname(req.file.originalname)}`;
+            const blob = await put(filename, req.file.buffer, { access: 'public' });
+            res.json({ url: blob.url });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * @route   POST /api/settings/admin/rekening
  * @desc    Tambah rekening baru
  * @access  Private (Admin)
  */
-router.post('/admin/rekening', [verifyToken, isAdmin, upload.single('qris_image')], async (req, res) => {
-    let { nama_bank, nomor_rekening, atas_nama, is_qris } = req.body;
+router.post('/admin/rekening', [verifyToken, isAdmin], async (req, res) => {
+    let { nama_bank, nomor_rekening, atas_nama, is_qris, qris_image_path } = req.body;
     
-    // Konversi is_qris dari string 'true'/'false' ke boolean (FormData mengirim string)
     const isQrisBool = is_qris === 'true' || is_qris === true;
 
     if (!nama_bank || !atas_nama) {
@@ -98,22 +123,9 @@ router.post('/admin/rekening', [verifyToken, isAdmin, upload.single('qris_image'
     }
 
     try {
-        let qrisImagePath = null;
-        if (req.file) {
-            if (isLocal) {
-                // Local: simpan path relatif ke file
-                qrisImagePath = `/uploads/qris/${req.file.filename}`;
-            } else {
-                // Production: upload ke Vercel Blob
-                const filename = `qris/qris-${Date.now()}${path.extname(req.file.originalname)}`;
-                const blob = await put(filename, req.file.buffer, { access: 'public' });
-                qrisImagePath = blob.url;
-            }
-        }
-
         const [result] = await db.query(
             "INSERT INTO tb_rekening (nama_bank, nomor_rekening, atas_nama, is_qris, qris_image_path, is_active) VALUES (?, ?, ?, ?, ?, TRUE)",
-            [nama_bank, nomor_rekening || null, atas_nama, isQrisBool, qrisImagePath]
+            [nama_bank, nomor_rekening || null, atas_nama, isQrisBool, qris_image_path || null]
         );
         
         res.status(201).json({ message: "Rekening berhasil ditambahkan", id: result.insertId });
@@ -127,38 +139,18 @@ router.post('/admin/rekening', [verifyToken, isAdmin, upload.single('qris_image'
  * @desc    Ubah status aktif rekening atau data rekening
  * @access  Private (Admin)
  */
-router.put('/admin/rekening/:id', [verifyToken, isAdmin, upload.single('qris_image')], async (req, res) => {
+router.put('/admin/rekening/:id', [verifyToken, isAdmin], async (req, res) => {
     const { id } = req.params;
-    let { nama_bank, nomor_rekening, atas_nama, is_qris, is_active } = req.body;
+    let { nama_bank, nomor_rekening, atas_nama, is_qris, is_active, qris_image_path } = req.body;
     
-    // Parse booleans dari string
     const isQrisBool = is_qris === 'true' || is_qris === true;
     const isActiveBool = is_active === 'true' || is_active === true;
 
     try {
-        let qrisImagePath = null;
-        if (req.file) {
-            if (isLocal) {
-                // Local: simpan path relatif ke file
-                qrisImagePath = `/uploads/qris/${req.file.filename}`;
-            } else {
-                // Production: upload ke Vercel Blob
-                const filename = `qris/qris-${Date.now()}${path.extname(req.file.originalname)}`;
-                const blob = await put(filename, req.file.buffer, { access: 'public' });
-                qrisImagePath = blob.url;
-            }
-            
-            await db.query(
-                "UPDATE tb_rekening SET nama_bank = ?, nomor_rekening = ?, atas_nama = ?, is_qris = ?, is_active = ?, qris_image_path = ? WHERE id = ?",
-                [nama_bank, nomor_rekening || null, atas_nama, isQrisBool, isActiveBool, qrisImagePath, id]
-            );
-        } else {
-            // Update tanpa mengubah gambar
-            await db.query(
-                "UPDATE tb_rekening SET nama_bank = ?, nomor_rekening = ?, atas_nama = ?, is_qris = ?, is_active = ? WHERE id = ?",
-                [nama_bank, nomor_rekening || null, atas_nama, isQrisBool, isActiveBool, id]
-            );
-        }
+        await db.query(
+            "UPDATE tb_rekening SET nama_bank = ?, nomor_rekening = ?, atas_nama = ?, is_qris = ?, is_active = ?, qris_image_path = ? WHERE id = ?",
+            [nama_bank, nomor_rekening || null, atas_nama, isQrisBool, isActiveBool, qris_image_path || null, id]
+        );
         
         res.json({ message: "Rekening berhasil diperbarui" });
     } catch (error) {

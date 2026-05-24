@@ -1,24 +1,49 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Mail, ArrowLeft, ArrowRight, User, Phone, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowLeft, ArrowRight, User, Phone, MapPin, Camera } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../../store/authStore';
 import logo from '../../logo.png';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { login } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [previewPhoto, setPreviewPhoto] = useState(null);
+  const [formData, setFormData] = useState({  
     fullName: '',
     email: '',
     phone: '',
     alamat: '',
-    password: ''
+    password: '',
+    nik: ''
   });
+  const [profilePhoto, setProfilePhoto] = useState(null);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'nik') {
+      setFormData({ ...formData, nik: value.replace(/\D/g, '').slice(0, 16) });
+      return;
+    }
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      e.target.value = '';
+      return;
+    }
+    setProfilePhoto(file);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPreviewPhoto(event.target?.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e) => {
@@ -26,17 +51,29 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      // 1. Tembak API Backend Register
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, formData);
+      const payload = new FormData();
+      payload.append('fullName', formData.fullName);
+      payload.append('email', formData.email);
+      payload.append('phone', formData.phone);
+      payload.append('alamat', formData.alamat);
+      payload.append('password', formData.password);
+      payload.append('nik', formData.nik);
+      if (profilePhoto) {
+        payload.append('profilePhoto', profilePhoto);
+      }
 
-      // 2. Jika Berhasil
-      toast.success("Registrasi Berhasil! Mohon tunggu verifikasi admin.");
+      // 1. Tembak API Backend Register
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, payload);
+
+      // 2. Auto-login setelah register berhasil
+      login(res.data.user, res.data.token);
+      toast.success("Registrasi Berhasil! Akun Anda sedang menunggu verifikasi admin.");
       
-      // 3. Redirect ke Halaman Login
-      navigate('/login');
+      // 3. Redirect ke halaman pending
+      navigate('/pending');
 
     } catch (error) {
-      const message = error.response?.data?.message || "Gagal melakukan registrasi";
+      const message = error.response?.data?.error || error.response?.data?.message || "Gagal melakukan registrasi";
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -146,6 +183,66 @@ const Register = () => {
                 required
                 disabled={isLoading}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* NIK */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">NIK</label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-500 transition-colors" size={16} />
+                <input 
+                  name="nik"
+                  type="text" 
+                  value={formData.nik}
+                  onChange={handleChange}
+                  placeholder="Nomor Identitas Kependudukan"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl py-3 pl-11 pr-4 text-slate-700 placeholder:text-slate-300 focus:outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all duration-300 font-medium text-sm"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium ml-1">16 digit angka</p>
+            </div>
+
+            {/* Foto Profil */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Foto Profil</label>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+                id="photoInput"
+                disabled={isLoading}
+              />
+              <label 
+                htmlFor="photoInput"
+                className="flex flex-col items-center justify-center gap-2 w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl py-5 px-4 cursor-pointer hover:border-primary-400 hover:bg-primary-50/40 transition-all duration-300 group"
+              >
+                {previewPhoto ? (
+                  <div className="relative">
+                    <img src={previewPhoto} alt="Preview" className="w-20 h-20 object-cover rounded-full border-2 border-slate-200" />
+                    <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera size={20} className="text-white" />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-primary-100 transition-colors">
+                      <Camera size={24} className="text-slate-400 group-hover:text-primary-500 transition-colors" />
+                    </div>
+                    <span className="text-xs font-semibold text-slate-500 group-hover:text-primary-600 transition-colors">Pilih Foto</span>
+                  </>
+                )}
+              </label>
+              <div className="flex items-center justify-between ml-1">
+                <p className="text-[10px] text-slate-400 font-medium">Maksimal 5MB</p>
+                {previewPhoto && (
+                  <label htmlFor="photoInput" className="text-[10px] text-primary-600 font-black cursor-pointer hover:underline">Ubah</label>
+                )}
+              </div>
             </div>
           </div>
 

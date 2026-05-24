@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../../components/layout/MainLayout';
+import { resolveImageUrl } from '../../utils/url';
 
 const BrowseFacilities = () => {
     const navigate = useNavigate();
@@ -101,7 +102,7 @@ const BrowseFacilities = () => {
                                 {/* Image Container */}
                                 <div className="aspect-[16/10] rounded-[2rem] overflow-hidden mb-6 relative">
                                     <img 
-                                        src={f.image || '/placeholder.png'} 
+                                        src={resolveImageUrl(f.image) || '/placeholder.png'} 
                                         alt={f.nama_fasilitas}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                     />

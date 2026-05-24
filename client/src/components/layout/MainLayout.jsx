@@ -26,7 +26,16 @@ const MainLayout = ({ children, title }) => {
         navigate('/login');
     };
 
+    const getPhotoUrl = (photoPath) => {
+        if (!photoPath) return null;
+        if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) return photoPath;
+        const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        const normalizedPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+        return `${baseUrl}${normalizedPath}`;
+    };
+
     const userInitial = user?.nama?.charAt(0).toUpperCase() ?? '?';
+    const userPhoto = getPhotoUrl(user?.foto_profil);
 
     return (
         <div className="flex h-screen bg-surface-subtle font-sans overflow-hidden">
@@ -101,9 +110,13 @@ const MainLayout = ({ children, title }) => {
                         <Menu as="div" className="relative ml-1">
                             <MenuButton className="flex items-center gap-2 p-1 lg:p-1.5 hover:bg-surface-muted rounded-xl lg:rounded-2xl transition-all border border-transparent hover:border-border-light focus:outline-none">
                                 {/* Avatar */}
-                                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-black text-sm shadow-md shadow-primary-200 shrink-0">
-                                    {userInitial}
-                                </div>
+                                {userPhoto ? (
+                                    <img src={userPhoto} alt={user?.nama} className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl object-cover shadow-md shrink-0" />
+                                ) : (
+                                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-black text-sm shadow-md shadow-primary-200 shrink-0">
+                                        {userInitial}
+                                    </div>
+                                )}
                                 {/* Name — desktop only */}
                                 <div className="hidden lg:block text-left max-w-[140px]">
                                     <p className="text-sm font-bold text-text-primary leading-none truncate">{user?.nama}</p>

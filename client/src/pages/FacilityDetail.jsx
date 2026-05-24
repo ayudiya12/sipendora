@@ -11,6 +11,7 @@ import {
 import Navbar from '../components/landing/Navbar';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
+import { resolveImageUrl } from '../utils/url';
 
 const FacilityDetail = () => {
     const { id } = useParams();
@@ -114,7 +115,7 @@ const FacilityDetail = () => {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.5, ease: "easeOut" }}
-                                            src={data.images[activeImage] || '/placeholder.png'} 
+                                            src={resolveImageUrl(data.images[activeImage]) || '/placeholder.png'} 
                                             className="w-full h-full object-cover" 
                                             alt={data.nama_fasilitas}
                                         />
@@ -154,7 +155,7 @@ const FacilityDetail = () => {
                                             onClick={() => setActiveImage(i)}
                                             className={`relative w-24 aspect-video rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${activeImage === i ? 'border-primary-500 scale-105 shadow-lg shadow-primary-500/20' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                         >
-                                            <img src={img} className="w-full h-full object-cover" alt={`Preview ${i}`} />
+                                            <img src={resolveImageUrl(img)} className="w-full h-full object-cover" alt={`Preview ${i}`} />
                                             {activeImage === i && <div className="absolute inset-0 bg-primary-500/10" />}
                                         </button>
                                     ))}

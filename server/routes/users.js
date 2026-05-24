@@ -11,7 +11,7 @@ router.use(verifyToken, isAdmin);
 router.get('/', async (req, res) => {
     try {
         const [users] = await db.query(
-            "SELECT id, nama, email, no_telp, alamat, role, status_akun, createdAt FROM tb_user ORDER BY createdAt DESC"
+            "SELECT id, nama, email, no_telp, alamat, role, status_akun, nik, foto_profil, createdAt FROM tb_user ORDER BY createdAt DESC"
         );
         res.json(users);
     } catch (err) {
@@ -22,7 +22,7 @@ router.get('/', async (req, res) => {
 
 // 2. CREATE NEW USER (ADMIN ACTION)
 router.post('/', async (req, res) => {
-    const { nama, email, password, no_telp, alamat, role } = req.body;
+    const { nama, email, password, no_telp, alamat, role, nik, foto_profil } = req.body;
     try {
         // Cek email duplikat
         const [existing] = await db.query("SELECT id FROM tb_user WHERE email = ?", [email]);
@@ -32,8 +32,8 @@ router.post('/', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const query = "INSERT INTO tb_user (nama, email, password, no_telp, alamat, role) VALUES (?, ?, ?, ?, ?, ?)";
-        const [result] = await db.query(query, [nama, email, hashedPassword, no_telp, alamat, role || 'PENYEWA']);
+        const query = "INSERT INTO tb_user (nama, email, password, no_telp, alamat, role, nik, foto_profil) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        const [result] = await db.query(query, [nama, email, hashedPassword, no_telp, alamat, role || 'PENYEWA', nik, foto_profil]);
         
         res.status(201).json({ message: "Pengguna berhasil ditambahkan", id: result.insertId });
     } catch (err) {
@@ -45,10 +45,10 @@ router.post('/', async (req, res) => {
 // 3. UPDATE USER INFO
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { nama, email, no_telp, alamat, role } = req.body;
+    const { nama, email, no_telp, alamat, role, nik, foto_profil } = req.body;
     try {
-        const query = "UPDATE tb_user SET nama = ?, email = ?, no_telp = ?, alamat = ?, role = ? WHERE id = ?";
-        await db.query(query, [nama, email, no_telp, alamat, role, id]);
+        const query = "UPDATE tb_user SET nama = ?, email = ?, no_telp = ?, alamat = ?, role = ?, nik = ?, foto_profil = ? WHERE id = ?";
+        await db.query(query, [nama, email, no_telp, alamat, role, nik, foto_profil, id]);
         res.json({ message: "Data pengguna berhasil diperbarui" });
     } catch (err) {
         console.error('Error updating user:', err);

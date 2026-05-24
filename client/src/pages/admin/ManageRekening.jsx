@@ -10,22 +10,26 @@ import {
 import Card from '../../components/ui/Card';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { resolveImageUrl } from '../../utils/url';
 
 const ManageRekening = () => {
     const [rekening, setRekening] = useState([]);
     const [loading, setLoading] = useState(true);
     
+    const [previewImage, setPreviewImage] = useState(null);
+    
     // Modal states
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [formData, setFormData] = useState({
         id: null,
         nama_bank: '',
         nomor_rekening: '',
         atas_nama: '',
         is_qris: false,
-        is_active: true
+        is_active: true,
+        qris_image_path: ''
     });
-    const [qrisFile, setQrisFile] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
@@ -49,10 +53,11 @@ const ManageRekening = () => {
             setFormData({
                 id: rek.id,
                 nama_bank: rek.nama_bank,
-                nomor_rekening: rek.nomor_rekening,
+                nomor_rekening: rek.nomor_rekening || '',
                 atas_nama: rek.atas_nama,
                 is_qris: rek.is_qris === 1,
-                is_active: rek.is_active === 1
+                is_active: rek.is_active === 1,
+                qris_image_path: rek.qris_image_path || ''
             });
         } else {
             setFormData({
@@ -61,37 +66,57 @@ const ManageRekening = () => {
                 nomor_rekening: '',
                 atas_nama: '',
                 is_qris: false,
-                is_active: true
+                is_active: true,
+                qris_image_path: ''
             });
         }
-        setQrisFile(null);
         setIsModalOpen(true);
+    };
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) return toast.error("File maks 5MB");
+        
+        const fData = new FormData();
+        fData.append('qris_image', file);
+        setIsUploading(true);
+        try {
+            const res = await api.post('/settings/admin/rekening/upload', fData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFormData(prev => ({ ...prev, qris_image_path: res.data.url }));
+            toast.success("Gambar QRIS berhasil diunggah!");
+        } catch (err) {
+            toast.error(err.response?.data?.error || "Gagal mengunggah gambar");
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
+        
+        if (formData.is_qris && !formData.qris_image_path) {
+            return toast.error("Gambar QRIS wajib diunggah!");
+        }
+
         setIsSaving(true);
         try {
-            const dataToSubmit = new FormData();
-            dataToSubmit.append('nama_bank', formData.nama_bank);
-            dataToSubmit.append('nomor_rekening', formData.nomor_rekening);
-            dataToSubmit.append('atas_nama', formData.atas_nama);
-            dataToSubmit.append('is_qris', formData.is_qris);
-            dataToSubmit.append('is_active', formData.is_active);
-            
-            if (qrisFile) {
-                dataToSubmit.append('qris_image', qrisFile);
-            }
+            const payload = {
+                nama_bank: formData.nama_bank,
+                nomor_rekening: formData.is_qris ? (formData.nomor_rekening || '') : formData.nomor_rekening,
+                atas_nama: formData.atas_nama,
+                is_qris: formData.is_qris,
+                is_active: formData.is_active,
+                qris_image_path: formData.is_qris ? formData.qris_image_path : null
+            };
 
             if (formData.id) {
-                await api.put(`/settings/admin/rekening/${formData.id}`, dataToSubmit, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.put(`/settings/admin/rekening/${formData.id}`, payload);
                 toast.success("Data berhasil diperbarui");
             } else {
-                await api.post('/settings/admin/rekening', dataToSubmit, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.post('/settings/admin/rekening', payload);
                 toast.success("Rekening baru berhasil ditambahkan");
             }
             setIsModalOpen(false);
@@ -176,10 +201,21 @@ const ManageRekening = () => {
                                     </div>
                                 </div>
 
-                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6 space-y-1">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{rek.is_qris ? 'Link QRIS / Tujuan' : 'Nomor Rekening'}</p>
-                                    <p className="text-xl font-black text-slate-900 tracking-widest">{rek.nomor_rekening}</p>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase mt-2">A.N. {rek.atas_nama}</p>
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6 flex justify-between items-center gap-4 min-h-[96px]">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{rek.is_qris ? 'Link QRIS / Tujuan' : 'Nomor Rekening'}</p>
+                                        <p className="text-lg font-black text-slate-900 tracking-tight leading-normal break-all">{rek.nomor_rekening || '-'}</p>
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase mt-1">A.N. {rek.atas_nama}</p>
+                                    </div>
+                                    {rek.is_qris && rek.qris_image_path && (
+                                        <div 
+                                            className="w-14 h-14 rounded-xl border border-slate-200 bg-white overflow-hidden p-1 shrink-0 shadow-sm cursor-zoom-in hover:border-primary-500 hover:scale-105 transition-all"
+                                            onClick={() => setPreviewImage(rek.qris_image_path)}
+                                            title="Klik untuk memperbesar QRIS"
+                                        >
+                                            <img src={resolveImageUrl(rek.qris_image_path)} alt="QRIS Mini Preview" className="w-full h-full object-contain" />
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex gap-2">
@@ -271,18 +307,37 @@ const ManageRekening = () => {
                                     {/* Upload QRIS khusus jika is_qris dicentang */}
                                     {formData.is_qris && (
                                         <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                                            <label className="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2">
-                                                Upload Gambar QRIS
+                                            <label className="block text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-2 flex items-center justify-between">
+                                                <span>Upload Gambar QRIS</span>
+                                                {isUploading && <Loader2 size={12} className="animate-spin text-indigo-500" />}
                                             </label>
                                             <input 
                                                 type="file" 
                                                 accept="image/*"
-                                                required={!formData.id} // Wajib jika data baru
-                                                onChange={(e) => setQrisFile(e.target.files[0])}
+                                                required={!formData.id && !formData.qris_image_path} // Wajib jika data baru
+                                                onChange={handleFileUpload}
                                                 className="w-full p-3 bg-white rounded-xl border border-indigo-100 text-xs font-bold text-slate-600 file:hidden cursor-pointer hover:bg-indigo-50 transition-colors"
+                                                disabled={isUploading}
                                             />
-                                            {formData.id && !qrisFile && (
+                                            {!formData.qris_image_path && (
+                                                <p className="text-[9px] text-indigo-400 mt-2 font-bold italic">*Silakan unggah berkas gambar QRIS terlebih dahulu.</p>
+                                            )}
+                                            {formData.id && formData.qris_image_path && (
                                                 <p className="text-[9px] text-indigo-400 mt-2 font-bold italic">*Biarkan kosong jika tidak ingin mengubah gambar QRIS.</p>
+                                            )}
+                                            
+                                            {/* Preview Gambar QRIS Terunggah */}
+                                            {formData.qris_image_path && (
+                                                <div className="mt-4 flex flex-col items-center justify-center p-3 bg-white rounded-2xl border border-indigo-100/50 shadow-inner">
+                                                    <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-2">Preview Gambar QRIS</p>
+                                                    <div className="w-28 h-28 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center p-1">
+                                                        <img 
+                                                            src={resolveImageUrl(formData.qris_image_path)} 
+                                                            alt="Preview QRIS" 
+                                                            className="w-full h-full object-contain"
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -310,6 +365,25 @@ const ManageRekening = () => {
                                         {isSaving ? 'Menyimpan...' : 'Simpan Pengaturan'}
                                     </button>
                                 </form>
+                            </motion.div>
+                        </div>
+                    </Dialog>
+                )}
+            </AnimatePresence>
+
+            {/* Full-size Image Preview Modal */}
+            <AnimatePresence>
+                {previewImage && (
+                    <Dialog static open={!!previewImage} as="div" className="relative z-[2000]" onClose={() => setPreviewImage(null)}>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm" />
+                        <div className="fixed inset-0 overflow-y-auto p-4 flex items-center justify-center">
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="relative max-w-sm w-full flex flex-col items-center">
+                                <div className="bg-white p-4 rounded-[2.5rem] shadow-2xl border border-slate-100 flex items-center justify-center w-80 h-80 sm:w-[24rem] sm:h-[24rem]">
+                                    <img src={resolveImageUrl(previewImage)} className="w-full h-full object-contain rounded-2xl" alt="QRIS Full Preview" />
+                                </div>
+                                <button onClick={() => setPreviewImage(null)} className="absolute -top-12 text-white font-black text-xs uppercase flex items-center gap-2 tracking-[0.2em] hover:text-primary-400 transition-colors">
+                                    <XCircle size={20}/> Tutup Preview
+                                </button>
                             </motion.div>
                         </div>
                     </Dialog>

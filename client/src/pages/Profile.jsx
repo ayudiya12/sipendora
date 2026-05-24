@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     ArrowLeft, User, Mail, Phone, MapPin, Edit2, Lock, 
-    Eye, EyeOff, Check, X, Shield, Calendar, Save
+    Eye, EyeOff, Check, X, Shield, Calendar, Save, Camera
 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
 import api from '../utils/api';
@@ -22,8 +22,13 @@ const Profile = () => {
         nama: '',
         email: '',
         no_telp: '',
-        alamat: ''
+        alamat: '',
+        nik: '',
+        foto_profil: ''
     });
+
+    const [profilePhoto, setProfilePhoto] = useState(null);
+    const [previewPhoto, setPreviewPhoto] = useState(null);
 
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
@@ -46,16 +51,17 @@ const Profile = () => {
         try {
             setLoading(true);
             const res = await api.get('/auth/me');
-            // Get full profile
-            const fullRes = await api.get('/auth/me');
-            const userData = fullRes.data;
+            const userData = res.data;
             
             setFormData({
                 nama: userData.nama || '',
                 email: userData.email || '',
                 no_telp: userData.no_telp || '',
-                alamat: userData.alamat || ''
+                alamat: userData.alamat || '',
+                nik: userData.nik || '',
+                foto_profil: userData.foto_profil || ''
             });
+            setPreviewPhoto(getPhotoUrl(userData.foto_profil));
         } catch (err) {
             toast.error("Gagal memuat profil");
         } finally {
@@ -63,22 +69,67 @@ const Profile = () => {
         }
     };
 
+    const getPhotoUrl = (photoPath) => {
+        if (!photoPath) return null;
+        if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) return photoPath;
+        const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+        const normalizedPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+        return `${baseUrl}${normalizedPath}`;
+    };
+
+    const handlePhotoChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Ukuran foto maksimal 5MB');
+            e.target.value = '';
+            return;
+        }
+        setProfilePhoto(file);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            setPreviewPhoto(event.target?.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        if (name === 'nik') {
+            setFormData(prev => ({ ...prev, nik: value.replace(/\D/g, '').slice(0, 16) }));
+            return;
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSaveProfile = async () => {
         try {
-            const res = await api.put('/auth/profile', formData);
-            toast.success("Profil berhasil diperbarui");
-            
-            // Update auth store with new user data
-            if (res.data.user) {
-                login(res.data.user, useAuthStore.getState().token);
+            if (profilePhoto) {
+                const payload = new FormData();
+                payload.append('nama', formData.nama);
+                payload.append('email', formData.email);
+                payload.append('no_telp', formData.no_telp);
+                payload.append('alamat', formData.alamat);
+                payload.append('nik', formData.nik);
+                payload.append('foto_profil', formData.foto_profil);
+                payload.append('profilePhoto', profilePhoto);
+
+                const res = await api.put('/auth/profile', payload);
+
+                toast.success("Profil berhasil diperbarui");
+                if (res.data.user) {
+                    login(res.data.user, useAuthStore.getState().token);
+                }
+                setProfilePhoto(null);
+                setIsEditing(false);
+            } else {
+                const res = await api.put('/auth/profile', formData);
+                toast.success("Profil berhasil diperbarui");
+                if (res.data.user) {
+                    login(res.data.user, useAuthStore.getState().token);
+                }
+                setIsEditing(false);
             }
-            
-            setIsEditing(false);
         } catch (err) {
             toast.error(err.response?.data?.error || "Gagal memperbarui profil");
         }
@@ -176,9 +227,32 @@ const Profile = () => {
                     className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-6"
                 >
                     {/* Avatar Header */}
-                    <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 py-8 text-center">
-                        <div className="w-24 h-24 mx-auto rounded-full bg-white flex items-center justify-center text-4xl font-black text-primary-600 shadow-lg mb-4">
-                            {formData.nama?.charAt(0).toUpperCase() || '?'}
+                    <div className="bg-gradient-to-br from-primary-500 to-primary-700 px-6 py-8 text-center relative">
+                        <div className="relative inline-block">
+                            {previewPhoto ? (
+                                <img src={previewPhoto} alt={formData.nama} className="w-24 h-24 mx-auto rounded-full object-cover border-4 border-white shadow-lg mb-4" />
+                            ) : (
+                                <div className="w-24 h-24 mx-auto rounded-full bg-white flex items-center justify-center text-4xl font-black text-primary-600 shadow-lg mb-4">
+                                    {formData.nama?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                            )}
+                            {isEditing && (
+                                <>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handlePhotoChange}
+                                        className="hidden"
+                                        id="profilePhotoInput"
+                                    />
+                                    <label 
+                                        htmlFor="profilePhotoInput"
+                                        className="absolute bottom-2 right-0 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md cursor-pointer hover:bg-primary-50 transition-colors"
+                                    >
+                                        <Camera size={14} className="text-primary-600" />
+                                    </label>
+                                </>
+                            )}
                         </div>
                         <h2 className="text-xl font-black text-white">{formData.nama}</h2>
                         <p className="text-sm text-primary-100 capitalize">{user?.role}</p>
@@ -269,6 +343,28 @@ const Profile = () => {
                                 </p>
                             )}
                         </div>
+
+                        {user?.role?.toLowerCase() === 'penyewa' && (
+                            <div>
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                    <Shield size={14} /> NIK
+                                </label>
+                                {isEditing ? (
+                                    <input
+                                        type="text"
+                                        name="nik"
+                                        value={formData.nik}
+                                        onChange={handleInputChange}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                        placeholder="16 digit angka"
+                                    />
+                                ) : (
+                                    <p className="px-4 py-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 tracking-tight">
+                                        {formData.nik || '-'}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </motion.div>
 

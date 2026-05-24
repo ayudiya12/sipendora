@@ -23,9 +23,10 @@ const Users = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const [formData, setFormData] = useState({
-    nama: '', email: '', password: '', no_telp: '', alamat: '', role: 'PENYEWA'
+    nama: '', email: '', password: '', no_telp: '', alamat: '', role: 'PENYEWA', nik: ''
   });
 
   const fetchUsers = async () => {
@@ -47,14 +48,15 @@ const Users = () => {
       setFormData({
         nama: user.nama,
         email: user.email,
-        password: '', // Kosongkan password saat edit demi keamanan
+        password: '',
         no_telp: user.no_telp || '',
         alamat: user.alamat || '',
-        role: user.role
+        role: user.role,
+        nik: user.nik || ''
       });
     } else {
       setEditId(null);
-      setFormData({ nama: '', email: '', password: '', no_telp: '', alamat: '', role: 'PENYEWA' });
+      setFormData({ nama: '', email: '', password: '', no_telp: '', alamat: '', role: 'PENYEWA', nik: '' });
     }
     setIsModalOpen(true);
   };
@@ -103,18 +105,48 @@ const Users = () => {
     }
   };
 
+  const getPhotoUrl = (photoPath) => {
+    if (!photoPath) return null;
+    if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) return photoPath;
+    const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const normalizedPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+    return `${baseUrl}${normalizedPath}`;
+  };
+
   const columns = useMemo(() => [
     {
       header: 'Identitas Pengguna',
       accessorKey: 'nama',
-      cell: info => (
-        <div className="flex items-center gap-3">
-          <div>
-            <span className="block font-bold text-slate-800 text-sm leading-tight tracking-tight">{info.getValue()}</span>
-            <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wider mt-0.5"><Mail size={10}/> {info.row.original.email}</span>
+      cell: info => {
+        const user = info.row.original;
+        const photoUrl = user.role === 'PENYEWA' ? getPhotoUrl(user.foto_profil) : null;
+        return (
+          <div className="flex items-center gap-3">
+            {photoUrl ? (
+              <button onClick={() => setSelectedPhoto(photoUrl)} className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-100 hover:border-primary-400 transition-colors shrink-0">
+                <img src={photoUrl} alt={user.nama} className="w-full h-full object-cover" />
+              </button>
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-500 shrink-0">
+                <User size={18} />
+              </div>
+            )}
+            <div>
+              <span className="block font-bold text-slate-800 text-sm leading-tight tracking-tight">{info.getValue()}</span>
+              <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase tracking-wider mt-0.5"><Mail size={10}/> {info.row.original.email}</span>
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
+    },
+    {
+      header: 'NIK',
+      accessorKey: 'nik',
+      cell: info => {
+        const user = info.row.original;
+        if (user.role !== 'PENYEWA') return <span className="text-[10px] text-slate-300 font-bold uppercase">—</span>;
+        return <span className="text-xs font-bold text-slate-700 tracking-tight">{user.nik || '-'}</span>;
+      }
     },
     {
         header: 'Akses & Peran',
@@ -229,6 +261,10 @@ const Users = () => {
                             )}
                         </div>
 
+                        {formData.role === 'PENYEWA' && (
+                            <Input label="NIK" value={formData.nik} onChange={e => setFormData({...formData, nik: e.target.value.replace(/\D/g, '').slice(0, 16)})} placeholder="16 digit angka" />
+                        )}
+
                         <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Alamat Lengkap</label>
                             <div className="relative">
@@ -252,6 +288,43 @@ const Users = () => {
                   </DialogPanel>
                 </motion.div>
               </div>
+            </div>
+          </Dialog>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedPhoto && (
+          <Dialog static open={!!selectedPhoto} as="div" className="relative z-[1000]" onClose={() => setSelectedPhoto(null)}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm" />
+            <div className="fixed inset-0 overflow-y-auto p-4 flex items-center justify-center">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+                animate={{ opacity: 1, scale: 1, y: 0 }} 
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="relative max-w-md w-full bg-white rounded-[2.5rem] p-4 shadow-2xl overflow-hidden"
+              >
+                <div className="flex justify-between items-center mb-4 px-4 pt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600">
+                      <User size={14}/>
+                    </div>
+                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Foto Profil</span>
+                  </div>
+                  <button onClick={() => setSelectedPhoto(null)} className="p-2 hover:bg-slate-50 rounded-full transition-colors"><X size={18} className="text-slate-400"/></button>
+                </div>
+                <div className="aspect-square rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100 mb-2">
+                  <img src={selectedPhoto} className="w-full h-full object-cover" alt="Foto Profil" />
+                </div>
+                <div className="p-4">
+                  <button 
+                    onClick={() => setSelectedPhoto(null)}
+                    className="w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:shadow-glow-dark transition-all"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </motion.div>
             </div>
           </Dialog>
         )}

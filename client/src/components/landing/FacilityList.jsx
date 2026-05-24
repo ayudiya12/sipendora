@@ -5,6 +5,7 @@ import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption, Tab, TabGroup
 import { Search, Building2, ArrowRight, Users, Tag, Check, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { resolveImageUrl } from '../../utils/url';
 
 const FacilityList = () => {
     const [facilities, setFacilities] = useState([]);
@@ -168,7 +169,7 @@ const FacilityList = () => {
                                                         <li className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${active ? 'bg-primary-600/20 text-white' : 'text-slate-400 hover:text-white'}`}>
                                                             <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-800 shrink-0">
                                                                 {f.image ? (
-                                                                    <img src={f.image} alt="" className="w-full h-full object-cover" />
+                                                                    <img src={resolveImageUrl(f.image)} alt="" className="w-full h-full object-cover" />
                                                                 ) : (
                                                                     <div className="w-full h-full flex items-center justify-center text-slate-600">
                                                                         <Building2 size={14} />
@@ -233,7 +234,7 @@ const FacilityList = () => {
                                         <div className="relative aspect-[4/3] md:aspect-[16/9] lg:aspect-auto overflow-hidden bg-primary-700 min-h-[240px] lg:min-h-0">
                                             {current.image ? (
                                                 <img
-                                                    src={current.image}
+                                                    src={resolveImageUrl(current.image)}
                                                     alt={current.nama_fasilitas}
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] ease-out"
                                                 />

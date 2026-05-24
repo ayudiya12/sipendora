@@ -26,15 +26,25 @@ function App() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Toaster 
         position="top-right"
+        containerStyle={{ top: 80 }}
         toastOptions={{
+          duration: 3500,
           style: {
-            background: '#FFFFFF',
-            color: '#0F172A',
-            border: '1px solid #E2E8F0',
-            fontWeight: 'bold',
+            background: '#1E293B',
+            color: '#F8FAFC',
+            fontWeight: '600',
             borderRadius: '14px',
-            fontSize: '14px'
+            fontSize: '13px',
+            padding: '12px 20px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            maxWidth: '420px'
           },
+          success: {
+            iconTheme: { primary: '#10B981', secondary: '#F8FAFC' }
+          },
+          error: {
+            iconTheme: { primary: '#EF4444', secondary: '#F8FAFC' }
+          }
         }} 
       />
       <Routes>

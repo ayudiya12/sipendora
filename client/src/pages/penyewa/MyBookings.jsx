@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import MainLayout from "../../components/layout/MainLayout";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
+import { resolveImageUrl } from "../../utils/url";
 
 const CountdownTimer = ({ updatedAt, onExpire }) => {
   const [timeLeft, setTimeLeft] = useState("");
@@ -648,7 +649,7 @@ Saya sudah mengunggah bukti pembayaran di aplikasi. Mohon segera diproses ya. Te
                           {rek.is_qris && rek.qris_image_path ? (
                             <div className="w-40 h-40 sm:w-56 sm:h-56 rounded-2xl overflow-hidden border border-slate-200 bg-white mb-3 shadow-sm relative z-10 p-2">
                               <img
-                                src={`${import.meta.env.VITE_API_URL || "http://localhost:5000"}/${rek.qris_image_path}`}
+                                src={resolveImageUrl(rek.qris_image_path)}
                                 alt="QRIS Pembayaran"
                                 className="w-full h-full object-contain"
                               />

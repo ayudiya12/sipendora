@@ -22,6 +22,7 @@ import MainLayout from "../../components/layout/MainLayout";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../store/authStore";
 import api from "../../utils/api";
+import { resolveImageUrl } from "../../utils/url";
 
 const FacilityBooking = () => {
   const { id } = useParams();
@@ -279,7 +280,7 @@ const FacilityBooking = () => {
                 <AnimatePresence mode="wait">
                   <motion.img
                     key={currentImageIndex}
-                    src={data.images?.[currentImageIndex] || "/placeholder.png"}
+                    src={resolveImageUrl(data.images?.[currentImageIndex]) || "/placeholder.png"}
                     className="w-full h-full object-cover"
                     alt={`${data.nama_fasilitas} ${currentImageIndex + 1}`}
                     initial={{ opacity: 0 }}

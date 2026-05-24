@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
 import DataTable from '../../components/ui/DataTable';
+import toast from 'react-hot-toast';
 
 const StatCard = ({ title, value, icon: Icon, color }) => (
     <motion.div 
@@ -51,6 +52,40 @@ const AdminDashboard = () => {
             }
         };
         fetchAdminData();
+
+        const showLoginNotifs = async () => {
+            const hasShown = sessionStorage.getItem('notif_shown_admin');
+            if (hasShown) return;
+
+            try {
+                const res = await api.get('/notifications');
+                const latestNotifs = res.data.filter(n => n.isRead === 0).slice(0, 4);
+
+                if (latestNotifs.length > 0) {
+                    latestNotifs.forEach((notif, index) => {
+                        setTimeout(() => {
+                            toast(notif.message, {
+                                icon: notif.type === 'SUCCESS' ? '✅' : '🔔',
+                                duration: 4000,
+                                style: {
+                                    background: '#1E293B',
+                                    border: '1px solid #334155',
+                                    padding: '16px',
+                                    color: '#F1F5F9',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: '800'
+                                }
+                            });
+                        }, index * 1000);
+                    });
+                }
+                sessionStorage.setItem('notif_shown_admin', 'true');
+            } catch (err) {
+                console.error("Gagal memuat notifikasi login");
+            }
+        };
+        showLoginNotifs();
     }, []);
 
     const formatIDR = (v) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v);
