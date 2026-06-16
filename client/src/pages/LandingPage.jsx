@@ -57,7 +57,7 @@ const LandingPage = () => {
           <div className="max-w-5xl mx-auto bg-surface-invert rounded-3xl lg:rounded-4xl p-10 md:p-15 lg:p-26 text-center relative overflow-hidden shadow-elevation-5 animate-fade-up">
             {/* Decor */}
             <div className="absolute top-0 right-0 w-64 lg:w-128 h-64 lg:h-128 bg-primary-500/10 rounded-full blur-[80px] lg:blur-[120px] -mr-32 -mt-32 lg:-mr-64 lg:-mt-64 animate-pulse-soft" />
-            <div className="absolute bottom-0 left-0 w-64 lg:w-128 h-64 lg:h-128 bg-info-500/10 rounded-full blur-[80px] lg:blur-[120px] -ml-32 -mb-32 lg:-ml-64 lg:-mb-64 animate-pulse-soft" />
+            <div className="absolute bottom-0 left-0 w-64 lg:w-128 h-64 lg:h-128 bg-secondary-500/10 rounded-full blur-[80px] lg:blur-[120px] -ml-32 -mb-32 lg:-ml-64 lg:-mb-64 animate-pulse-soft" />
 
             <div className="relative z-10">
                 <span className="inline-flex items-center gap-2 text-primary-400 font-black text-[10px] uppercase tracking-widest bg-white/5 border border-white/10 px-6 py-3 rounded-full mb-8 lg:mb-10 shadow-elevation-1">

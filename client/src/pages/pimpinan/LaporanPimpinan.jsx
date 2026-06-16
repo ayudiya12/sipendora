@@ -3,7 +3,7 @@ import api from '../../utils/api';
 import {
     Download, User, CalendarDays, Calendar, X,
     ClipboardList, TrendingUp, CalendarRange,
-    ReceiptIcon,
+    ReceiptIcon, FileText,
 } from 'lucide-react';
 import DataTable from '../../components/ui/DataTable';
 import Card from '../../components/ui/Card';
@@ -335,6 +335,105 @@ const LaporanPimpinan = () => {
         }
     };
 
+    /* ─── Export PDF ─────────────────────────────────────────────────────── */
+    const exportToPDF = async () => {
+        try {
+            const { jsPDF } = await import('jspdf');
+            const { applyPlugin } = await import('jspdf-autotable');
+            applyPlugin(jsPDF);
+
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const tableMargin = 14;
+            const availableWidth = pageWidth - tableMargin * 2;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('DINAS PEMUDA DAN OLAHRAGA KOTA PALEMBANG', pageWidth / 2, 20, { align: 'center' });
+
+            doc.setFontSize(14);
+            doc.text('LAPORAN REKAPITULASI PENDAPATAN FASILITAS OLAHRAGA', pageWidth / 2, 28, { align: 'center' });
+
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Periode: ${periodLabel}`, pageWidth / 2, 36, { align: 'center' });
+
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.5);
+            doc.line(14, 41, pageWidth - 14, 41);
+
+            const headers = [['ID Transaksi', 'Tanggal Booking', 'Penyewa', 'Fasilitas / Sesi', 'Pendapatan']];
+
+            const totalRevenue = laporan.reduce((acc, item) => acc + Number(item?.total_biaya || 0), 0);
+
+            const rows = laporan.map((item) => [
+                `#${item.id}`,
+                formatDate(item.tanggal_booking),
+                item.penyewa || '-',
+                `${item.nama_fasilitas || '-'} - ${item.nama_tarif || '-'}`,
+                formatIDR(item.total_biaya),
+            ]);
+
+            rows.push([
+                { content: 'Total Pendapatan', colSpan: 4, styles: { fontStyle: 'bold', halign: 'right' } },
+                { content: formatIDR(totalRevenue), styles: { fontStyle: 'bold' } },
+            ]);
+
+            doc.autoTable({
+                head: headers,
+                body: rows,
+                startY: 45,
+                margin: { left: tableMargin, right: tableMargin },
+                tableWidth: availableWidth,
+                theme: 'grid',
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 3,
+                    font: 'helvetica',
+                },
+                headStyles: {
+                    fillColor: [29, 53, 87],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center',
+                },
+                columnStyles: {
+                    0: { cellWidth: Math.round(availableWidth * 0.12) },
+                    1: { cellWidth: Math.round(availableWidth * 0.17) },
+                    2: { cellWidth: Math.round(availableWidth * 0.23) },
+                    3: { cellWidth: Math.round(availableWidth * 0.30) },
+                    4: { cellWidth: Math.round(availableWidth * 0.18), halign: 'right' },
+                },
+            });
+
+            const finalY = doc.lastAutoTable.finalY + 15;
+            const today = new Date().toLocaleDateString('id-ID', {
+                year: 'numeric', month: 'long', day: 'numeric',
+            });
+            const leftX = 50;
+            const rightX = pageWidth - 50;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Mengetahui,', leftX, finalY, { align: 'center' });
+            doc.text(`Palembang, ${today}`, rightX, finalY, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('Kepala Dinas Pemuda dan Olahraga', leftX, finalY + 7, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('Bendahara Penerima', rightX, finalY + 7, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('(...................................)', leftX, finalY + 24, { align: 'center' });
+            doc.text('(...................................)', rightX, finalY + 24, { align: 'center' });
+
+            doc.save(`Laporan_Pendapatan_Sipendora_${Date.now()}.pdf`);
+        } catch (error) {
+            console.error('Failed to export PDF:', error);
+            alert('Gagal mengunduh PDF. Pastikan modul telah terinstal dengan baik.');
+        }
+    };
+
     /* ─── Render ──────────────────────────────────────────────────────────── */
     return (
         <MainLayout title="Laporan Rekapitulasi">
@@ -452,6 +551,13 @@ const LaporanPimpinan = () => {
                                     className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200/50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Download size={14} /> Export Excel
+                                </button>
+                                <button
+                                    onClick={exportToPDF}
+                                    disabled={loading || laporan.length === 0}
+                                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-rose-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-md shadow-rose-200/50 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <FileText size={14} /> Export PDF
                                 </button>
                             </div>
                         </div>

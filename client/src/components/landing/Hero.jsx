@@ -25,7 +25,7 @@ const Hero = () => {
 
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold leading-[1.1] tracking-tightest mb-6 lg:mb-7 text-text-primary">
             Olahraga Lebih
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-info-500">
+            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-secondary-500">
               Mudah & Teratur
             </span>
           </h1>

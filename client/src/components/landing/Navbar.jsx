@@ -39,10 +39,20 @@ const Navbar = () => {
 
         {/* Desktop Navigation Links */}
         <div className="hidden md:flex items-center space-x-8 lg:space-x-10 text-white/80 font-bold text-[11px] uppercase tracking-widest">
-          {navLinks.map((link) => (
-            <a key={link.name} href={link.href} className="hover:text-white transition-colors">
+          {navLinks.map((link, idx) => (
+            <motion.a 
+              key={link.name} 
+              href={link.href}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: idx * 0.1, ease: 'easeOut' }}
+              whileHover={{ scale: 1.08 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative py-2 hover:text-white transition-colors group cursor-pointer"
+            >
               {link.name}
-            </a>
+              <span className="absolute bottom-0 left-0 w-full h-[2px] bg-white scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ease-out origin-center" />
+            </motion.a>
           ))}
         </div>
 
