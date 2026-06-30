@@ -44,9 +44,24 @@ const FacilityBooking = () => {
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null); // Slot yang sedang dipilih
+  const [selectedUnit, setSelectedUnit] = useState(null); // Lapangan/unit yang dipilih
   const [prefillAttempted, setPrefillAttempted] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0); // Untuk image slider
   const { user } = useAuthStore();
+
+  // Auto-select first available unit/court when selectedSlot changes
+  useEffect(() => {
+    if (selectedSlot && selectedSlot.units) {
+      const availableUnit = selectedSlot.units.find((u) => u.isAvailable);
+      if (availableUnit) {
+        setSelectedUnit(availableUnit.nomor_unit);
+      } else {
+        setSelectedUnit(null);
+      }
+    } else {
+      setSelectedUnit(null);
+    }
+  }, [selectedSlot]);
 
   // Auto-select slot dari prefill (hanya sekali)
   useEffect(() => {
@@ -143,6 +158,7 @@ const FacilityBooking = () => {
         fasilitasId: id,
         tarifId: selectedSlot.id,
         tanggal_booking: selectedDate,
+        nomor_unit: selectedUnit,
       };
       // Tambah existingBookingId jika ada (untuk rebooking)
       if (existingBookingId) {
@@ -519,6 +535,36 @@ const FacilityBooking = () => {
                               </div>
                             </div>
                           </div>
+
+                          {selectedSlot.totalUnits > 1 && (
+                            <div className="space-y-3 p-6 bg-white/5 rounded-3xl border border-white/5">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                                Pilih Lapangan / Unit
+                              </label>
+                              <div className="flex flex-wrap gap-3">
+                                {selectedSlot.units?.map((u) => {
+                                  const isUnitSelected = selectedUnit === u.nomor_unit;
+                                  return (
+                                    <button
+                                      key={u.nomor_unit}
+                                      type="button"
+                                      disabled={!u.isAvailable}
+                                      onClick={() => setSelectedUnit(u.nomor_unit)}
+                                      className={`px-6 py-3 rounded-2xl border-2 text-xs font-black uppercase tracking-wider transition-all ${
+                                        isUnitSelected
+                                          ? "bg-primary-600 border-primary-500 text-white shadow-md shadow-primary-900/20"
+                                          : u.isAvailable
+                                          ? "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                                          : "opacity-30 border-transparent bg-slate-800 text-slate-500 cursor-not-allowed"
+                                      }`}
+                                    >
+                                      Lapangan {u.nomor_unit} {!u.isAvailable && "(Penuh)"}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white/5 rounded-3xl p-6 border border-white/5 space-y-4">

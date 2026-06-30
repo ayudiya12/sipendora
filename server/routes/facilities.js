@@ -220,6 +220,15 @@ router.get('/public', async (req, res) => {
             reason = "Sesi Penuh";
         }
 
+        const occupiedUnits = sessionBookings.map(b => b.nomor_unit);
+        const units = [];
+        for (let i = 1; i <= facility.jumlah_unit; i++) {
+            units.push({
+                nomor_unit: i,
+                isAvailable: isAvailable && !occupiedUnits.includes(i)
+            });
+        }
+
         return {
           ...t,
           jam_mulai: stStr,
@@ -229,6 +238,7 @@ router.get('/public', async (req, res) => {
           isAvailable,
           reason,
           remainingUnits: remainingUnits < 0 ? 0 : remainingUnits,
+          units,
           queueInfo: {
             current_queue: usedUnits,
             last_completion: lastCT,

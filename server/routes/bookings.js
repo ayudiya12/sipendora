@@ -11,7 +11,7 @@ const { sendNotif } = require('../utils/notifHelper');
  * @access  Private (Penyewa)
  */
 router.post('/', verifyToken, async (req, res) => {
-    const { fasilitasId, tarifId, tanggal_booking, existingBookingId } = req.body;
+    const { fasilitasId, tarifId, tanggal_booking, nomor_unit, existingBookingId } = req.body;
     const userId = req.user.id;
     const arrivalTime = new Date(); 
 
@@ -117,6 +117,7 @@ router.post('/', verifyToken, async (req, res) => {
         // 6. Validasi Unit & Assign Nomor Unit
         // Khusus EVENT, dia memakan nomor_unit 1 saja (karena eksklusif)
         let assignedUnit = 1;
+        const requestedUnit = nomor_unit ? parseInt(nomor_unit) : null;
 
         if (tariff.tipe_tarif !== 'EVENT') {
             const [existingBookings] = await conn.query(
@@ -126,16 +127,27 @@ router.post('/', verifyToken, async (req, res) => {
                 [fasilitasId, tarifId, tanggal_booking]
             );
 
-            if (existingBookings.length >= facility.jumlah_unit) {
-                throw new Error("Sesi ini sudah penuh. Semua unit telah disewa.");
-            }
-
-            // Cari nomor unit yang tersedia
             const occupiedUnits = existingBookings.map(b => b.nomor_unit);
-            for (let i = 1; i <= facility.jumlah_unit; i++) {
-                if (!occupiedUnits.includes(i)) {
-                    assignedUnit = i;
-                    break;
+
+            if (requestedUnit) {
+                if (requestedUnit < 1 || requestedUnit > facility.jumlah_unit) {
+                    throw new Error(`Nomor lapangan tidak valid. Harus antara 1 dan ${facility.jumlah_unit}.`);
+                }
+                if (occupiedUnits.includes(requestedUnit)) {
+                    throw new Error(`Lapangan ${requestedUnit} pada sesi ini sudah dibooking oleh penyewa lain.`);
+                }
+                assignedUnit = requestedUnit;
+            } else {
+                if (existingBookings.length >= facility.jumlah_unit) {
+                    throw new Error("Sesi ini sudah penuh. Semua unit telah disewa.");
+                }
+
+                // Cari nomor unit yang tersedia
+                for (let i = 1; i <= facility.jumlah_unit; i++) {
+                    if (!occupiedUnits.includes(i)) {
+                        assignedUnit = i;
+                        break;
+                    }
                 }
             }
         }
